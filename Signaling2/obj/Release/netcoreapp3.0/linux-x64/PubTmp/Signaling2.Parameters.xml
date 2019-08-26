@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<parameters>
+  <parameter name="IIS Web Application Name" description="" value="Signaling220190827033118" tags="IisApp">
+    <parameterEntry kind="ProviderPath" scope="IisApp" match="^C:\\Users\\User\\Desktop\\BlazorTest\\Signaling2\\obj\\Release\\netcoreapp3\.0\\linux-x64\\PubTmp\\Out\\$" />
+  </parameter>
+</parameters>
