@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -46,6 +47,7 @@ namespace Signaling2
                     {
                         //°õ¦æ±µ¦¬ 
                         WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
+                        await Receive(socket);
                         Console.WriteLine("create connection");
                     }
                     catch (Exception ex)
@@ -54,6 +56,23 @@ namespace Signaling2
                     }
                 });
             });
+        }
+
+        async Task Receive(WebSocket socket)
+        {    
+            while (socket.State == WebSocketState.Open)
+            {
+                var buffer = new byte[1024];
+                var incoming = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                byte[] mybuff = new byte[incoming.Count];
+                Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
+                string s = System.Text.UTF8Encoding.Default.GetString(mybuff);
+                Console.WriteLine($"Recevie Something: {s}");
+
+                byte[] backInfo = System.Text.UTF8Encoding.Default.GetBytes("server say hello!");
+                var outgoing = new ArraySegment<byte>(backInfo, 0, backInfo.Length);
+                await socket.SendAsync(outgoing, WebSocketMessageType.Text, true, CancellationToken.None);
+            }
         }
     }
 }
