@@ -2,8 +2,6 @@ C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.c
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\staticwebassets\Signaling2.StaticWebAssets.Manifest.cache
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\staticwebassets\Signaling2.StaticWebAssets.xml
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.csproj.CoreCompileInputs.cache
-C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.MvcApplicationPartsAssemblyInfo.cs
-C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.MvcApplicationPartsAssemblyInfo.cache
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.AssemblyInfoInputs.cache
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.AssemblyInfo.cs
 C:\Users\User\Desktop\BlazorTest\Signaling2\bin\Debug\netcoreapp3.0\appsettings.Development.json
@@ -18,3 +16,7 @@ C:\Users\User\Desktop\BlazorTest\Signaling2\bin\Debug\netcoreapp3.0\Signaling2.p
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.RazorTargetAssemblyInfo.cache
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.dll
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.pdb
+C:\Users\User\Desktop\BlazorTest\Signaling2\bin\Debug\netcoreapp3.0\Newtonsoft.Json.dll
+C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Debug\netcoreapp3.0\Signaling2.csproj.CopyComplete

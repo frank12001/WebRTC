@@ -30,7 +30,9 @@
             startVideo(socket);
         };
         socket.onclose = function (e) { console.log("closed"); };
-        socket.onmessage = function (e) { console.log("Received: " + e.data); }; 
+        socket.onmessage = function (e) {
+            console.log("Received: " + e.data);
+        }; 
         socket.onerror = function (e) { console.log("Error: "+e.data); }; 
 
 
@@ -83,12 +85,12 @@
 
                         wsSocket.send(JSON.stringify(
                             {
-                                100: {
-                                    "offerSDP": offerSDP,
-                                    "offerCandidate:": offerCandidate,
-                                    "answerSDP": "",
-                                    "answerCandidate": "",                                   
-                                }
+                                "myID":"offer",
+                                "roomID":"100",
+                                "offerSDP": offerSDP,
+                                "offerCandidate": offerCandidate,
+                                "answerSDP": "",
+                                "answerCandidate": "",
                             }
                         ));
                     }
