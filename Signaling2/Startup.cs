@@ -49,6 +49,10 @@ namespace Signaling2
                     {
                         //°õ¦æ±µ¦¬ 
                         WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
+                        if (client1 == null)
+                            client1 = socket;
+                        if (client1 != null && client2 == null)
+                            client2 = socket;
                         await Receive(socket);
                         Console.WriteLine("create connection");
                     }
@@ -60,13 +64,15 @@ namespace Signaling2
             });
         }
 
-        static ICEInfo OfferICE=null;
-        static ICEInfo AnswerICE = null;
+        static WebSocket client1=null;
+        static WebSocket client2=null;
+        static string OfferICE="";
+        static string AnswerICE = "";
         async Task Receive(WebSocket socket)
-        {    
+        {
             while (socket.State == WebSocketState.Open)
             {
-                if (OfferICE != null)
+                if (OfferICE.Length > 0)
                 {
                     await SendStringAsync(socket, JsonConvert.SerializeObject(OfferICE));
                 }
@@ -77,11 +83,16 @@ namespace Signaling2
                 string s = System.Text.UTF8Encoding.Default.GetString(mybuff);
                 Console.WriteLine($"Recevie Something: {s}");
 
-                ICEInfo iceInfo = JsonConvert.DeserializeObject<ICEInfo>(s);
-                if (OfferICE == null)
+                if (s.Length > 0)
                 {
-                    OfferICE = iceInfo;
-                }              
+                    if(socket == client1)
+                        OfferICE = s;
+                    if (socket == client2)
+                    {
+                        AnswerICE = s;
+                        SendStringAsync(client1, AnswerICE);
+                    }
+                }
             }
         }
 
@@ -90,21 +101,6 @@ namespace Signaling2
             byte[] pack = System.Text.UTF8Encoding.Default.GetBytes(text);
             var outgoing = new ArraySegment<byte>(pack, 0, pack.Length);
             await socket.SendAsync(outgoing, WebSocketMessageType.Text, true, CancellationToken.None);
-        }
-
-        public class ICEInfo : IEquatable<ICEInfo>
-        {
-            public string myID;
-            public string roomID;
-            public string offerSDP;
-            public string offerCandidate;
-            public string answerSDP;
-            public string answerCandidate;
-
-            public bool Equals(ICEInfo other)
-            {
-                return other.myID == myID;
-            }
         }
     }
 }

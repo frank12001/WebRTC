@@ -32,6 +32,24 @@
         socket.onclose = function (e) { console.log("closed"); };
         socket.onmessage = function (e) {
             console.log("Received: " + e.data);
+            var sdp = JSON.parse(e.data);
+            var offer = new SessionDescription(sdp.offerSDP);
+            pc.setRemoteDescription(offer);
+
+            pc.createAnswer(function (answer) {
+                pc.setLocalDescription(answer, function () {
+                    socket.send(JSON.stringify(
+                            {
+                                "myID": "answer",
+                                "roomID": "100",
+                                "offerSDP": "",
+                                "offerCandidate": "",
+                                "answerSDP": pc.localDescription,
+                                "answerCandidate": ""
+                            }
+                        ));
+                }, errorHandler);
+            }, errorHandler);
         }; 
         socket.onerror = function (e) { console.log("Error: "+e.data); }; 
 
@@ -80,17 +98,17 @@
                     if (evt.candidate.type == 'srflx') {
                         console.log("這個 candidate 是 ice 反射過來的");
                         console.log(JSON.stringify(evt.candidate));
-                        var offerSDP = pc.localDescription;
-                        var offerCandidate = JSON.stringify(evt.candidate);
+                        var offerSDP =pc.localDescription;
+                        var offerCandidate = evt.candidate;
 
                         wsSocket.send(JSON.stringify(
                             {
-                                "myID":"offer",
-                                "roomID":"100",
+                                "myID": "offer",
+                                "roomID": "100",
                                 "offerSDP": offerSDP,
                                 "offerCandidate": offerCandidate,
                                 "answerSDP": "",
-                                "answerCandidate": "",
+                                "answerCandidate": ""
                             }
                         ));
                     }
