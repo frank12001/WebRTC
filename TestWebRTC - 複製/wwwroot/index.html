@@ -1,0 +1,66 @@
+﻿<html>
+<head>
+    <meta charset="utf8">
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+
+</head>
+<body>
+    <h1>使用RTCPeerConnection流式传输视频</h1>
+    <!--加了 playsinline 標籤才能在 iphone 上正常執行-->
+    <video id="myVideo" playsinline></video>
+    <video id="remoteVideo1" playsinline></video>
+
+    <div>
+        <button id="startButton">Start</button>
+        <button id="callButton">Call</button>
+        <button id="hangupButton">Hang Up</button>
+    </div>
+
+    <script>
+        console.log('js code start');
+
+        //wss://signaling220190827034317.azurewebsites.net/ws
+        //ws://localhost:5000/ws
+        var uri = "ws://localhost:5000/ws";
+        var output;
+        var configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:23.21.150.121" }] };
+        var pc = new RTCPeerConnection(configuration);
+        pc.onicecandidate = (evt) => {
+            if (!evt.candidate) return;
+            if (evt.candidate.type == 'srflx') {
+                console.log("這個 candidate 是 ice 反射過來的");
+                console.log(JSON.stringify(evt.candidate));
+            }
+        };
+        pc.ontrack = (evt) => {
+                    console.log("ontrack");
+                    ////將stream綁定到vedio上，就可以開始串流了
+                    //var rwmoteVideo1 = document.querySelector('#remoteVideo1');
+                    //rwmoteVideo1.src = URL.createObjectURL(evt.streams[0]);
+        };
+        pc.onaddstream = function (e) {
+             console.log("onaddstream");
+        };
+        var socket = new WebSocket(uri);
+        socket.onopen = function (e) {
+            console.log("open");
+        };
+        socket.onclose = function (e) { console.log("closed"); };
+        socket.onmessage = function (e) {
+            console.log("Received: " + e.data);
+            var sdp = JSON.parse(e.data);
+            var offer = new RTCSessionDescription(sdp);
+            pc.setRemoteDescription(offer);
+
+            pc.createAnswer(function (answer) {
+                pc.setLocalDescription(answer, function () {
+                    socket.send(JSON.stringify(pc.localDescription));
+                }, e => { console.log(e); });
+            }, e => { console.log(e); });
+        }; 
+        socket.onerror = function (e) { console.log("Error: "+e.data); }; 
+
+
+    </script>
+</body>
+</html>

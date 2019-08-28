@@ -49,11 +49,9 @@ namespace Signaling2
                     {
                         //°õ¦æ±µ¦¬ 
                         WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
-                        if (client1 == null)
-                            client1 = socket;
-                        if (client1 != null && client2 == null)
-                            client2 = socket;
-                        await Receive(socket);
+                        clients.Add(socket);
+                        index++;
+                        await Receive(socket,index);
                         Console.WriteLine("create connection");
                     }
                     catch (Exception ex)
@@ -63,20 +61,19 @@ namespace Signaling2
                 });
             });
         }
-
-        static WebSocket client1=null;
-        static WebSocket client2=null;
+        static int index = -1;
+        static List<WebSocket> clients = new List<WebSocket>();
         static string OfferICE="";
         static string AnswerICE = "";
-        async Task Receive(WebSocket socket)
+        async Task Receive(WebSocket socket,int index)
         {
+            if (index == 1)
+            {
+                await SendStringAsync(socket,OfferICE);
+            }
             while (socket.State == WebSocketState.Open)
             {
-                if (OfferICE.Length > 0)
-                {
-                    await SendStringAsync(socket, JsonConvert.SerializeObject(OfferICE));
-                }
-                var buffer = new byte[1024];
+                var buffer = new byte[102400];
                 var incoming = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 byte[] mybuff = new byte[incoming.Count];
                 Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
@@ -85,12 +82,18 @@ namespace Signaling2
 
                 if (s.Length > 0)
                 {
-                    if(socket == client1)
-                        OfferICE = s;
-                    if (socket == client2)
+                    if (index == 0)
                     {
-                        AnswerICE = s;
-                        SendStringAsync(client1, AnswerICE);
+                        if(OfferICE.Length == 0)
+                            OfferICE = s;
+                    }
+                    if (index == 1)
+                    {
+                        if (AnswerICE.Length == 0)
+                        {
+                            AnswerICE = s;
+                            await SendStringAsync(clients[index - 1], AnswerICE);
+                        }
                     }
                 }
             }

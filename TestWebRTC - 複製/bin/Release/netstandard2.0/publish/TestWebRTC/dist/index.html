@@ -1,0 +1,37 @@
+﻿<html>
+<head>
+    <meta charset="utf8">
+    <script>
+        console.log('js code start');
+        //想要获取一个最接近 1280x720 的相机分辨率
+        var constraints = { audio: true, video: true };
+
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(function (mediaStream) {
+                var video = document.querySelector('video');
+                video.srcObject = mediaStream;
+                video.onloadedmetadata = function (e) {
+                    video.play();
+                };
+            })
+            .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
+
+        /*var constraints = { audio: true, video: true };
+        navigator.mediaDevices.getUserMedia(constraints)
+        .then(function(stream) {
+           使用这个stream stream
+           console.log("can use stream");
+        })
+        .catch(function(err) {
+           处理error
+             console.log("can't use stream");
+        });
+        */
+    </script>
+
+</head>
+<body>
+    <video controls width="250">
+    </video>
+</body>
+</html>

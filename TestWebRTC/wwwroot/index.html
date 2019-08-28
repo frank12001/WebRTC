@@ -18,7 +18,8 @@
 
     <script>
         console.log('js code start');
-
+         var configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:23.21.150.121" }] };
+         var pc = new RTCPeerConnection(configuration);
         //wss://signaling220190827034317.azurewebsites.net/ws
         //ws://localhost:5000/ws
         var uri = "ws://localhost:5000/ws";
@@ -26,105 +27,86 @@
         var socket = new WebSocket(uri);
         socket.onopen = function (e) {
             console.log("open");
-            //socket.send("Client say hello!"); 
-            startVideo(socket);
+            startVideo(socket,pc);
         };
         socket.onclose = function (e) { console.log("closed"); };
         socket.onmessage = function (e) {
             console.log("Received: " + e.data);
             var sdp = JSON.parse(e.data);
-            var offer = new SessionDescription(sdp.offerSDP);
-            pc.setRemoteDescription(offer);
+            var answer = new RTCSessionDescription(sdp);
+            pc.setRemoteDescription(answer);   
 
-            pc.createAnswer(function (answer) {
-                pc.setLocalDescription(answer, function () {
-                    socket.send(JSON.stringify(
-                            {
-                                "myID": "answer",
-                                "roomID": "100",
-                                "offerSDP": "",
-                                "offerCandidate": "",
-                                "answerSDP": pc.localDescription,
-                                "answerCandidate": ""
-                            }
-                        ));
-                }, errorHandler);
-            }, errorHandler);
+             var constraints = { audio: true, video: true };
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then((stream) {
+                    pc.addStream(stream);
+                    //var myVideo = document.querySelector('#myVideo');
+                    //myVideo.srcObject = mediaStream;
+                    //myVideo.onloadedmetadata = function (e) {
+                    //    myVideo.play();
+                    //};
+                 
+                })
+                .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
         }; 
         socket.onerror = function (e) { console.log("Error: "+e.data); }; 
 
 
-        function startVideo(wsSocket) {
-            var constraints = { audio: true, video: true };
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(function (mediaStream) {
-                    var myVideo = document.querySelector('#myVideo');
-                    myVideo.srcObject = mediaStream;
-                    myVideo.onloadedmetadata = function (e) {
-                        myVideo.play();
-                    };
-                })
-                .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
+        function startVideo(wsSocket, pc) {
+            //var constraints = { audio: true, video: true };
+            //navigator.mediaDevices.getUserMedia(constraints)
+            //    .then(function (mediaStream) {
+            //        var myVideo = document.querySelector('#myVideo');
+            //        myVideo.srcObject = mediaStream;
+            //        myVideo.onloadedmetadata = function (e) {
+            //            myVideo.play();
+            //        };
+            //    })
+            //    .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
 
-            var hasRTC = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-            if (hasRTC) {
-                var configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:23.21.150.121" }] };
-                var pc = new RTCPeerConnection(configuration);
-                pc.createDataChannel('');
-                console.log("create datachannel success");
+            //pc.createDataChannel('');
+            //console.log("create datachannel success");
 
-                //要 create offer 後， pc.onicecandidate 才會觸發
-                var options = {
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: true
-                };
-                pc.createOffer(
-                    offer => {
-                        pc.setLocalDescription(offer, () => {
-                            // 將 offer SDP 存入 pc.localDescription
-                            console.log("成功儲存 Offer SDP 至 peerconnection 暫存: pc.localDescription");
-                        });
-                        //send desc to other !?
-                        console.log("createOffer success");
-                        console.log(offer);
-                    }, e => { console.log(e) }, options);
+            //要 create offer 後， pc.onicecandidate 才會觸發
+            var options = {
+                offerToReceiveAudio: false,
+                offerToReceiveVideo: true
+            };
+            pc.createOffer(
+                offer => {
+                    pc.setLocalDescription(offer, () => {
+                        // 將 offer SDP 存入 pc.localDescription
+                        console.log("成功儲存 Offer SDP 至 peerconnection 暫存: pc.localDescription");
+                    });
+                    //send desc to other !?
+                    console.log("createOffer success");
+                    console.log(offer);
+                }, e => { console.log(e) }, options);
 
-                pc.onicecandidate = (evt) => {
-                    console.log("onicecandidate");
-                    if (!evt.candidate) return;
-                    console.log("可用的 evt.candidate 存在");
-                    console.log(evt.candidate.address);
-                    console.log(evt.candidate);
-                    if (evt.candidate.type == 'srflx') {
-                        console.log("這個 candidate 是 ice 反射過來的");
-                        console.log(JSON.stringify(evt.candidate));
-                        var offerSDP =pc.localDescription;
-                        var offerCandidate = evt.candidate;
+            pc.onicecandidate = (evt) => {
+                console.log("onicecandidate");
+                if (!evt.candidate) return;
+                console.log("可用的 evt.candidate 存在");
+                console.log(evt.candidate.address);
+                console.log(evt.candidate);
+                if (evt.candidate.type == 'srflx') {
+                    console.log("這個 candidate 是 ice 反射過來的");
+                    console.log(JSON.stringify(evt.candidate));
+                    var offerSDP = pc.localDescription;
+                    var offerCandidate = evt.candidate;
 
-                        wsSocket.send(JSON.stringify(
-                            {
-                                "myID": "offer",
-                                "roomID": "100",
-                                "offerSDP": offerSDP,
-                                "offerCandidate": offerCandidate,
-                                "answerSDP": "",
-                                "answerCandidate": ""
-                            }
-                        ));
-                    }
-                };
-
-                pc.ontrack = (evt) => {
-                    console.log("add remote stream");
-                    console.log(evt);
-                    //將stream綁定到vedio上，就可以開始串流了
-                    var rwmoteVideo1 = document.querySelector('#remoteVideo1');
-                    rwmoteVideo1.src = URL.createObjectURL(evt.streams[0]);
-                };
-            }
-            else {
-                console.log("可用的 RTCPeerConnection 不存在");
-            }
+                    wsSocket.send(JSON.stringify(offerSDP));
+                }
+            };
+            pc.ontrack = (evt) => {
+                console.log("ontrack");
+                ////將stream綁定到vedio上，就可以開始串流了
+                //var rwmoteVideo1 = document.querySelector('#remoteVideo1');
+                //rwmoteVideo1.src = URL.createObjectURL(evt.streams[0]);
+            };
+            pc.onaddstream = function (e) {
+                console.log("onaddstream");
+            };
         }
     </script>
 </body>

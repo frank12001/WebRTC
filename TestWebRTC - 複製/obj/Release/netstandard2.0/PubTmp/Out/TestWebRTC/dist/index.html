@@ -1,0 +1,86 @@
+﻿<html>
+<head>
+    <meta charset="utf8">
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+
+</head>
+<body>
+    <h1>使用RTCPeerConnection流式传输视频</h1>
+    <!--加了 playsinline 標籤才能在 iphone 上正常執行-->
+    <video id="myVideo" playsinline></video>
+    <video id="remoteVideo1" playsinline></video>
+
+    <div>
+        <button id="startButton">Start</button>
+        <button id="callButton">Call</button>
+        <button id="hangupButton">Hang Up</button>
+    </div>
+
+    <script>
+                console.log('js code start');
+
+                ////var uri = "ws://"   window.location.host   "/ws";
+                //var uri = "ws://localhost:5000/ws";
+                //var output;
+                //var text = "test echo";
+                //var  socket = new WebSocket(uri);
+                //socket.onopen = function (e) { console.log("open"); };
+
+
+                var constraints = { audio: true, video: true };
+                navigator.mediaDevices.getUserMedia(constraints)
+                    .then(function (mediaStream) {
+                        var myVideo = document.querySelector('#myVideo');
+                        myVideo.srcObject = mediaStream;
+                        myVideo.onloadedmetadata = function (e) {
+                            myVideo.play();
+                        };
+                    })
+                    .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
+
+                var hasRTC = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+                if (hasRTC) {
+                    var configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:23.21.150.121" }] };
+                    var pc = new RTCPeerConnection(configuration);
+                    pc.createDataChannel('');
+                    console.log("create datachannel success");
+
+                    pc.createOffer(
+                        offerDesc => {
+                            pc.setLocalDescription(offerDesc);
+                            //send desc to other !?
+                            console.log("create createOffer success");
+                            console.log(offerDesc);
+                        }, e => { console.log(e) });
+
+                    pc.onicecandidate = (evt) => {
+                        console.log("onicecandidate");
+                        if (evt.candidate) {
+                            var ip_addr = evt.candidate.address;
+                            localStorage.setItem('ip_addr', ip_addr);
+                            console.log("可用的 evt.candidate 存在");
+                            console.log(ip_addr);
+                            console.log(evt.candidate);
+                            if (evt.candidate.type == 'srflx') {
+                                console.log("這個 candidate 是 ice 反射過來的");
+
+                            }
+                        }
+                        else { console.log("可用的 onicecandidate.evt.candidate 不存在"); }
+                    };
+
+                    pc.ontrack = (evt) => {
+                        console.log("add remote stream");
+                        console.log(evt);
+                        //將stream綁定到vedio上，就可以開始串流了
+                        var rwmoteVideo1 = document.querySelector('#remoteVideo1');
+                        rwmoteVideo1.src = URL.createObjectURL(evt.streams[0]);
+                    };
+                }
+                else {
+                    console.log("可用的 RTCPeerConnection 不存在");
+                }
+
+    </script>
+</body>
+</html>
