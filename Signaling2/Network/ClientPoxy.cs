@@ -8,14 +8,16 @@ using Signaling2.Network.Packet;
 
 namespace Signaling2.Network
 {
-    public class ClientPoxy
+    public class ClientProxy
     {            
         private readonly NetUnit Net;
         private readonly ProxyManager Manager;
         private string SDP="";
+
+        //甚麼時候要開始傳送 candidates?
         public List<string> Candidates = new List<string>();
 
-        public ClientPoxy(WebSocket socket, ProxyManager manager)
+        public ClientProxy(WebSocket socket, ProxyManager manager)
         {
             Net = new NetUnit(socket, Receive, Disconnect);
             this.Manager = manager;
@@ -24,7 +26,7 @@ namespace Signaling2.Network
             {
                 //代表我是 answer
                 //將別人的 SDP 送給自己
-                var s = JsonConvert.SerializeObject(new Sdp() { Operator = "BroadcastSDP", Json = otherSDP });
+                var s = JsonConvert.SerializeObject(new Sdp() { Json = otherSDP });
                 Send(s);
             }
         }
@@ -49,7 +51,7 @@ namespace Signaling2.Network
                 var packet = JsonConvert.DeserializeObject<IBase>(value);
                 switch (packet.Operator)
                 {
-                    case "SaveSDP":
+                    case Sdp.MyOperator:
                         var sdp = JsonConvert.DeserializeObject<Sdp>(value);
                         this.SDP = sdp.Json;
                         break;
@@ -60,7 +62,7 @@ namespace Signaling2.Network
                     case "BroadcastSDP":
                         var broadcastSDP = JsonConvert.DeserializeObject<Sdp>(value);
                         this.SDP = broadcastSDP.Json;
-                        var s = JsonConvert.SerializeObject(new Sdp() { Operator = "BroadcastSDP", Json = this.SDP });
+                        var s = JsonConvert.SerializeObject(new Sdp() { Json = this.SDP });
                         Manager.Broadcast(s,this);
                         break;
                 }

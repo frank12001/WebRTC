@@ -7,20 +7,20 @@ namespace Signaling2.Network
 {
     public class ProxyManager
     {
-        private readonly List<ClientPoxy> Clients = new List<ClientPoxy>();
+        private readonly List<ClientProxy> Clients = new List<ClientProxy>();
 
-        public void Add(ClientPoxy client)
+        public void Add(ClientProxy client)
         {
             if (!Clients.Contains(client))
                 Clients.Add(client);
         }
 
-        public void Remove(ClientPoxy client)
+        public void Remove(ClientProxy client)
         {
             Clients.Remove(client);
         }
 
-        public void Broadcast(string value,ClientPoxy exception=null)
+        public void Broadcast(string value,ClientProxy exception=null)
         {
             foreach (var client in Clients)
             {

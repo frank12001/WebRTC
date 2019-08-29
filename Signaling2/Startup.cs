@@ -51,7 +51,7 @@ namespace Signaling2
                     {
                         //°õ¦æ±µ¦¬ 
                         var socket = await context.WebSockets.AcceptWebSocketAsync();
-                        var client = new ClientPoxy(socket, Manager);
+                        var client = new ClientProxy(socket, Manager);
                         Manager.Add(client);
 
                         Console.WriteLine("create connection");

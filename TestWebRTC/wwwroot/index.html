@@ -5,7 +5,7 @@
 
 </head>
 <body>
-    <h1>使用RTCPeerConnection流式传输视频</h1>
+    <h1> 使用 RTCPeerConnection 傳輸影像</h1>
     <!--加了 playsinline 標籤才能在 iphone 上正常執行-->
     <video id="myVideo" playsinline></video>
     <video id="remoteVideo1" playsinline></video>
@@ -27,89 +27,79 @@
         var socket = new WebSocket(uri);
         socket.onopen = function (e) {
             console.log("open");
-            startVideo(socket,pc);
+            createOfferSDP(pc, offerSDP => {
+                socket.send(JSON.stringify({
+                    Operator: "SaveSDP",
+                    Json: JSON.stringify(offerSDP)
+                }));
+            });
+            pc.onicecandidate = evt => {
+                if (!evt.candidate) return;
+                socket.send(JSON.stringify({
+                    Operator: "SaveCandidate",
+                    Json: JSON.stringify(evt.candidate)
+                }));
+            };
+            pc.ontrack = (evt) => {
+                console.log("ontrack");
+            };
+            pc.onaddstream = function (e) {
+                console.log("onaddstream");
+            };
+            startVideo(socket, pc);
         };
         socket.onclose = function (e) { console.log("closed"); };
         socket.onmessage = function (e) {
+            //1. BroadcastSDP: save remote sdp & output my video on ny screen
+            //2. save remote candidate
+            //封包一定有 Operator 這個欄位
             console.log("Received: " + e.data);
-            var sdp = JSON.parse(e.data);
-            var answer = new RTCSessionDescription(sdp);
-            pc.setRemoteDescription(answer);   
 
-             var constraints = { audio: true, video: true };
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then((stream) => {
-                    pc.addStream(stream);
-                    //var myVideo = document.querySelector('#myVideo');
-                    //myVideo.srcObject = mediaStream;
-                    //myVideo.onloadedmetadata = function (e) {
-                    //    myVideo.play();
-                    //};
-                 
-                })
-                .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
+            var packet = JSON.parse(e.data);
+            switch (packet.Operator)
+            {
+                case "BroadcastSDP":
+                    var sdp = packet.Json;
+                    var answer = new RTCSessionDescription(sdp);
+                    pc.setRemoteDescription(answer);   
+                    //set my media
+                    setMedia(pc);
+                    break;
+                case "SaveCandidate":
+                    var candidate = packet.Json;
+                    pc.addIceCandidate(new RTCIceCandidate(candidate));
+                    break;
+            }
         }; 
         socket.onerror = function (e) { console.log("Error: "+e.data); }; 
 
-
-        function startVideo(wsSocket, pc) {
-            //var constraints = { audio: true, video: true };
-            //navigator.mediaDevices.getUserMedia(constraints)
-            //    .then(function (mediaStream) {
-            //        var myVideo = document.querySelector('#myVideo');
-            //        myVideo.srcObject = mediaStream;
-            //        myVideo.onloadedmetadata = function (e) {
-            //            myVideo.play();
-            //        };
-            //    })
-            //    .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
-
-            //pc.createDataChannel('');
-            //console.log("create datachannel success");
-
-            //要 create offer 後， pc.onicecandidate 才會觸發
+        //創建 SDP 並儲存至 pc 的 LocalDescription 中
+        function createOfferSDP(pc,success) {
+             //要 create offer 後， pc.onicecandidate 才會觸發
             var options = {
-                offerToReceiveAudio: false,
+                offerToReceiveAudio: true,
                 offerToReceiveVideo: true
             };
             pc.createOffer(
                 offer => {
                     pc.setLocalDescription(offer, () => {
-                        // 將 offer SDP 存入 pc.localDescription
-                        console.log("成功儲存 Offer SDP 至 peerconnection 暫存: pc.localDescription");
-                        wsSocket.send(JSON.stringify(
-                            {
-                                Operator: "SaveSDP",
-                                Json: JSON.stringify(offerSDP)
-                            }
-                        ));
+                        success(offer);
                     });
-                    //send desc to other !?
-                    console.log("createOffer success");
-                    console.log(offer);
                 }, e => { console.log(e) }, options);
-
-            pc.onicecandidate = (evt) => {
-                console.log("onicecandidate");
-                if (!evt.candidate) return;
-                console.log("可用的 evt.candidate 存在");
-                console.log(evt.candidate.address);
-                console.log(evt.candidate);
-                if (evt.candidate.type == 'srflx') {
-                    console.log("這個 candidate 是 ice 反射過來的");
-                    console.log(JSON.stringify(evt.candidate));
-                    var offerCandidate = evt.candidate;
-                }
-            };
-            pc.ontrack = (evt) => {
-                console.log("ontrack");
-                ////將stream綁定到vedio上，就可以開始串流了
-                //var rwmoteVideo1 = document.querySelector('#remoteVideo1');
-                //rwmoteVideo1.src = URL.createObjectURL(evt.streams[0]);
-            };
-            pc.onaddstream = function (e) {
-                console.log("onaddstream");
-            };
+        }
+        //取得本地攝影機串流，並將串流放入本地組件及 Peer 組件
+        function setMedia(pc) {
+              var constraints = { audio: true, video: true };
+                navigator.mediaDevices.getUserMedia(constraints)
+                .then((stream) => {
+                    pc.addStream(stream);
+                    var myVideo = document.querySelector('#myVideo');
+                    myVideo.srcObject = mediaStream;
+                    myVideo.onloadedmetadata = function (e) {
+                        myVideo.play();
+                    };                 
+                })
+                .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
         }
     </script>
 </body>
