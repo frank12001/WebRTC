@@ -26,7 +26,7 @@ namespace Signaling2.Network
             {
                 if (client == exception)
                     continue;
-                client.Send(value);
+                client.Net.SendStringAsync(value);
             }
         }
         public bool TryFindFirstSDP(out string sdp)

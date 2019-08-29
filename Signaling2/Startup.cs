@@ -53,7 +53,8 @@ namespace Signaling2
                         var socket = await context.WebSockets.AcceptWebSocketAsync();
                         var client = new ClientProxy(socket, Manager);
                         Manager.Add(client);
-
+                        //websocket receiveAsync 如果在其他 Task 呼叫會斷線
+                        await client.Net.ListenAsync();
                         Console.WriteLine("create connection");
                     }
                     catch (Exception ex)

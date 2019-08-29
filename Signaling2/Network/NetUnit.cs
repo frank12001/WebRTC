@@ -25,44 +25,39 @@ namespace Signaling2.Network
             Socket = socket;
             this.onIncome = onIncome;
             this.onDisconnect = onDisconnect;
+            //Task.Run(async () => 
+            //{
+            //    while (true)
+            //    {
+            //        if (!IsSocketOpen())
+            //        {
+            //            Dispose();
+            //            return;
+            //        }
+            //        await NetworkUpdate();
+            //    }
+            //});
             Task.Run(async () => 
             {
-                while (true)
+                while (IsSocketOpen())
                 {
-                    if (IsSocketOpen())
-                    {
-                        Dispose();
-                        return;
-                    }
-                    await NetworkUpdate();
-                }
-            });
-            Task.Run(async () => 
-            {
-                while (true)
-                {
-                    if (IsSocketOpen())
-                    {
-                        Dispose();
-                        return;
-                    }
-                    
                     QueueUpdate();
                     var packet = Logic.Dequeue();
                     this.onIncome(packet);
                     await Task.Delay(30);
-                }                
+                }
+                Dispose();
             });
 
-            async Task NetworkUpdate()
-            {
-                var buffer = new byte[BufferSize];
-                var incoming = await Socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                var mybuff = new byte[incoming.Count];
-                Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
-                var packet = Encoding.Default.GetString(mybuff);
-                NetIncome.Enqueue(packet);
-            }
+            //async Task NetworkUpdate()
+            //{
+            //    var buffer = new byte[BufferSize];
+            //    var incoming = await Socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            //    var mybuff = new byte[incoming.Count];
+            //    Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
+            //    var packet = Encoding.Default.GetString(mybuff);
+            //    NetIncome.Enqueue(packet);
+            //}
 
             void QueueUpdate()
             {
@@ -76,10 +71,7 @@ namespace Signaling2.Network
                 Temp = temp;
             }
 
-            bool IsSocketOpen()
-            {
-                return Socket.State != WebSocketState.Open;
-            }
+
         }
         public void Dispose()
         {
@@ -95,6 +87,24 @@ namespace Signaling2.Network
             byte[] pack = Encoding.Default.GetBytes(text);
             var outgoing = new ArraySegment<byte>(pack, 0, pack.Length);
             await Socket.SendAsync(outgoing, WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+        public async Task ListenAsync()
+        {
+            while (IsSocketOpen())
+            {
+                var buffer = new byte[BufferSize];
+                var incoming = await Socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                var mybuff = new byte[incoming.Count];
+                Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
+                var packet = Encoding.Default.GetString(mybuff);
+                NetIncome.Enqueue(packet);
+            }
+            Dispose();
+        }
+
+        private bool IsSocketOpen()
+        {
+            return Socket.State == WebSocketState.Open;
         }
     }
 }

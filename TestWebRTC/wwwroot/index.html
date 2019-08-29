@@ -43,10 +43,9 @@
             pc.ontrack = evt => {
                 console.log("ontrack");
             };
-            pc.onaddstream = function e {
+            pc.onaddstream =  e => {
                 console.log("onaddstream");
             };
-            startVideo(socket, pc);
         };
         socket.onclose = function (e) { console.log("closed"); };
         socket.onmessage = function (e) {
@@ -59,7 +58,7 @@
             switch (packet.Operator)
             {
                 case "BroadcastSDP":
-                    var sdp = packet.Json;
+                    var sdp = packet.Json;                   
                     var answer = new RTCSessionDescription(sdp);
                     pc.setRemoteDescription(answer);   
                     //set my media

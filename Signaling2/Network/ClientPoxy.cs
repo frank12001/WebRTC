@@ -10,7 +10,7 @@ namespace Signaling2.Network
 {
     public class ClientProxy
     {            
-        private readonly NetUnit Net;
+        public readonly NetUnit Net;
         private readonly ProxyManager Manager;
         private string SDP="";
 
@@ -27,12 +27,8 @@ namespace Signaling2.Network
                 //代表我是 answer
                 //將別人的 SDP 送給自己
                 var s = JsonConvert.SerializeObject(new Sdp() { Json = otherSDP });
-                Send(s);
+                Net.SendStringAsync(s);
             }
-        }
-        public void Send(string value)
-        {
-            Net.SendStringAsync(value);
         }
         public bool TryGetSDP(out string sdp)
         {
