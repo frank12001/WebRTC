@@ -25,7 +25,7 @@
         var uri = "ws://localhost:5000/ws";
         var output;
         var socket = new WebSocket(uri);
-        socket.onopen = function (e) {
+        socket.onopen =  e => {
             console.log("open");
             createOfferSDP(pc, offerSDP => {
                 socket.send(JSON.stringify({
@@ -40,10 +40,10 @@
                     Json: JSON.stringify(evt.candidate)
                 }));
             };
-            pc.ontrack = (evt) => {
+            pc.ontrack = evt => {
                 console.log("ontrack");
             };
-            pc.onaddstream = function (e) {
+            pc.onaddstream = function e {
                 console.log("onaddstream");
             };
             startVideo(socket, pc);
