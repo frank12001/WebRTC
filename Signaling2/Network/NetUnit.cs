@@ -90,11 +90,11 @@ namespace Signaling2.Network
                 Socket.Dispose();
             }
         }
-        public async Task SendStringAsync(WebSocket socket, string text)
+        public async Task SendStringAsync( string text)
         {
             byte[] pack = Encoding.Default.GetBytes(text);
             var outgoing = new ArraySegment<byte>(pack, 0, pack.Length);
-            await socket.SendAsync(outgoing, WebSocketMessageType.Text, true, CancellationToken.None);
+            await Socket.SendAsync(outgoing, WebSocketMessageType.Text, true, CancellationToken.None);
         }
     }
 }

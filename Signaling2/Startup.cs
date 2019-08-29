@@ -17,6 +17,7 @@ namespace Signaling2
 {
     public class Startup
     {
+        static ProxyManager Manager = new ProxyManager();
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
@@ -53,9 +54,6 @@ namespace Signaling2
                         var client = new ClientPoxy(socket, Manager);
                         Manager.Add(client);
 
-                        clients.Add(socket);
-                        index++;
-                        await Receive(socket,index);
                         Console.WriteLine("create connection");
                     }
                     catch (Exception ex)
@@ -65,7 +63,7 @@ namespace Signaling2
                 });
             });
         }
-        static ProxyManager Manager = new ProxyManager();
+
         static int index = -1;
         static List<WebSocket> clients = new List<WebSocket>();
         static string OfferICE="";

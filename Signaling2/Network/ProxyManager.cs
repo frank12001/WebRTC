@@ -19,5 +19,27 @@ namespace Signaling2.Network
         {
             Clients.Remove(client);
         }
+
+        public void Broadcast(string value,ClientPoxy exception=null)
+        {
+            foreach (var client in Clients)
+            {
+                if (client == exception)
+                    continue;
+                client.Send(value);
+            }
+        }
+        public bool TryFindFirstSDP(out string sdp)
+        {
+            bool result = false;
+            sdp = "";
+
+            foreach (var client in Clients)
+            {
+                if (client.TryGetSDP(out sdp))
+                    break;
+            }
+            return result;
+        }
     }
 }
