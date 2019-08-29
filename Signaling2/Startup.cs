@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
+using Signaling2.Network;
 
 namespace Signaling2
 {
@@ -48,7 +49,10 @@ namespace Signaling2
                     try
                     {
                         //°õ¦æ±µ¦¬ 
-                        WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
+                        var socket = await context.WebSockets.AcceptWebSocketAsync();
+                        var client = new ClientPoxy(socket, Manager);
+                        Manager.Add(client);
+
                         clients.Add(socket);
                         index++;
                         await Receive(socket,index);
@@ -61,6 +65,7 @@ namespace Signaling2
                 });
             });
         }
+        static ProxyManager Manager = new ProxyManager();
         static int index = -1;
         static List<WebSocket> clients = new List<WebSocket>();
         static string OfferICE="";
@@ -79,6 +84,15 @@ namespace Signaling2
                 Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
                 string s = System.Text.UTF8Encoding.Default.GetString(mybuff);
                 Console.WriteLine($"Recevie Something: {s}");
+
+                try
+                {
+                    var g = JsonConvert.DeserializeObject<SDP>(s);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
 
                 if (s.Length > 0)
                 {
@@ -104,6 +118,16 @@ namespace Signaling2
             byte[] pack = System.Text.UTF8Encoding.Default.GetBytes(text);
             var outgoing = new ArraySegment<byte>(pack, 0, pack.Length);
             await socket.SendAsync(outgoing, WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
+        public class SDP : PacketBase
+        {
+            public string Json;
+        }
+
+        public class PacketBase
+        {
+            public string Operator;   
         }
     }
 }

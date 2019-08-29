@@ -38,7 +38,7 @@
 
              var constraints = { audio: true, video: true };
             navigator.mediaDevices.getUserMedia(constraints)
-                .then((stream) {
+                .then((stream) => {
                     pc.addStream(stream);
                     //var myVideo = document.querySelector('#myVideo');
                     //myVideo.srcObject = mediaStream;
@@ -77,6 +77,12 @@
                     pc.setLocalDescription(offer, () => {
                         // 將 offer SDP 存入 pc.localDescription
                         console.log("成功儲存 Offer SDP 至 peerconnection 暫存: pc.localDescription");
+                        wsSocket.send(JSON.stringify(
+                            {
+                                Operator: "SaveSDP",
+                                Json: JSON.stringify(offerSDP)
+                            }
+                        ));
                     });
                     //send desc to other !?
                     console.log("createOffer success");
@@ -92,10 +98,7 @@
                 if (evt.candidate.type == 'srflx') {
                     console.log("這個 candidate 是 ice 反射過來的");
                     console.log(JSON.stringify(evt.candidate));
-                    var offerSDP = pc.localDescription;
                     var offerCandidate = evt.candidate;
-
-                    wsSocket.send(JSON.stringify(offerSDP));
                 }
             };
             pc.ontrack = (evt) => {
