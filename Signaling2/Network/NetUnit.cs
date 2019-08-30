@@ -25,40 +25,20 @@ namespace Signaling2.Network
             Socket = socket;
             this.onIncome = onIncome;
             this.onDisconnect = onDisconnect;
-            //Task.Run(async () => 
-            //{
-            //    while (true)
-            //    {
-            //        if (!IsSocketOpen())
-            //        {
-            //            Dispose();
-            //            return;
-            //        }
-            //        await NetworkUpdate();
-            //    }
-            //});
             Task.Run(async () => 
             {
                 while (IsSocketOpen())
                 {
                     QueueUpdate();
-                    var packet = Logic.Dequeue();
-                    this.onIncome(packet);
+                    if (Logic.Count > 0)
+                    {
+                        var packet = Logic.Dequeue();
+                        this.onIncome(packet);
+                    }
                     await Task.Delay(30);
                 }
                 Dispose();
             });
-
-            //async Task NetworkUpdate()
-            //{
-            //    var buffer = new byte[BufferSize];
-            //    var incoming = await Socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            //    var mybuff = new byte[incoming.Count];
-            //    Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
-            //    var packet = Encoding.Default.GetString(mybuff);
-            //    NetIncome.Enqueue(packet);
-            //}
-
             void QueueUpdate()
             {
                 //將 Temp 倒入 Logic
@@ -70,8 +50,6 @@ namespace Signaling2.Network
                 NetIncome = Temp;
                 Temp = temp;
             }
-
-
         }
         public void Dispose()
         {

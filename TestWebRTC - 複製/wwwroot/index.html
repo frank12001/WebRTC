@@ -51,27 +51,24 @@
 
             var packet = JSON.parse(e.data);
             switch (packet.Operator) {
-                case "BroadcastSDP":
-                    var sdp = packet.Json;
+                case "SaveSDP":
+                    var sdp = JSON.parse(packet.Json);
                     var offer = new RTCSessionDescription(sdp);
                     pc.setRemoteDescription(offer);
                     //set my media
                     setMedia(pc);
                     createAnswerSDP(pc, answerSDP => {
-                        socket.send(JSON.stringify(pc.answerSDP));
+                        socket.send(JSON.stringify({
+                            Operator: "BroadcastSDP",
+                            Json: JSON.stringify(answerSDP)
+                        }));
                     });
                     break;
                 case "SaveCandidate":
-                    var candidate = packet.Json;
+                    var candidate = JSON.parse(packet.Json);  
                     pc.addIceCandidate(new RTCIceCandidate(candidate));
                     break;
             }
-
-            //pc.createAnswer(function (answer) {
-            //    pc.setLocalDescription(answer, function () {
-            //        socket.send(JSON.stringify(pc.localDescription));
-            //    }, e => { console.log(e); });
-            //}, e => { console.log(e); });
         };
         socket.onerror = function (e) { console.log("Error: " + e.data); };
 
@@ -91,7 +88,7 @@
                 .then((stream) => {
                     pc.addStream(stream);
                     var myVideo = document.querySelector('#myVideo');
-                    myVideo.srcObject = mediaStream;
+                    myVideo.srcObject = stream;
                     myVideo.onloadedmetadata = function (e) {
                         myVideo.play();
                     };

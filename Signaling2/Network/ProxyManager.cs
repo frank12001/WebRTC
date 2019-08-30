@@ -36,7 +36,8 @@ namespace Signaling2.Network
 
             foreach (var client in Clients)
             {
-                if (client.TryGetSDP(out sdp))
+                result = client.TryGetSDP(out sdp);
+                if (result)
                     break;
             }
             return result;
