@@ -25,7 +25,7 @@
         var uri = "ws://localhost:5000/ws";
         var output;
         var socket = new WebSocket(uri);
-        socket.onopen =  e => {
+        socket.onopen = e => {
             console.log("open");
             createOfferSDP(pc, offerSDP => {
                 socket.send(JSON.stringify({
@@ -43,29 +43,52 @@
             pc.ontrack = evt => {
                 console.log("ontrack");
             };
-            pc.onaddstream =  e => {
+            pc.onaddstream = e => {
                 console.log("onaddstream");
             };
+            pc.onconnectionstatechange = function (event) {
+                switch (pc.connectionState) {
+                    case "connected":
+                        // The connection has become fully connected
+                        console.log("onconnectionstatechange connected");
+                        break;
+                    case "disconnected":
+                    case "failed":
+                        // One or more transports has terminated unexpectedly or in an error
+                        console.log("onconnectionstatechange disconnected & failed");
+                        console.log(JSON.stringify(event));
+                        break;
+                    case "closed":
+                        // The connection has been closed
+                        console.log("onconnectionstatechange close");
+                        break;
+                }
+            }
         };
         socket.onclose = function (e) { console.log("closed"); };
         socket.onmessage = function (e) {
             //1. BroadcastSDP: save remote sdp & output my video on ny screen
             //2. save remote candidate
             //封包一定有 Operator 這個欄位
-            console.log("Received: " + e.data);
+            //console.log("Received: " + e.data);
 
             var packet = JSON.parse(e.data);
-            switch (packet.Operator)
-            {
+            switch (packet.Operator) {
                 case "SaveSDP":
-                    var sdp = JSON.parse(packet.Json);             
+                    console.log("SaveSDP: " + packet.Json);
+                    var sdp = JSON.parse(packet.Json);
                     var answer = new RTCSessionDescription(sdp);
-                    pc.setRemoteDescription(answer);   
+                    pc.setRemoteDescription(answer);
                     //set my media
                     setMedia(pc);
+                    //broadcast my candidate
+                    socket.send(JSON.stringify({
+                        Operator: "BroadcastCandidate",
+                    }));
                     break;
                 case "SaveCandidate":
-                    var candidate = JSON.parse(packet.Json); 
+                    console.log("SaveCandidate: " + packet.Json);
+                    var candidate = JSON.parse(packet.Json);
                     pc.addIceCandidate(new RTCIceCandidate(candidate));
                     break;
             }
@@ -88,15 +111,15 @@
         }
         //取得本地攝影機串流，並將串流放入本地組件及 Peer 組件
         function setMedia(pc) {
-              var constraints = { audio: true, video: true };
-                navigator.mediaDevices.getUserMedia(constraints)
+            var constraints = { audio: true, video: true };
+            navigator.mediaDevices.getUserMedia(constraints)
                 .then((stream) => {
                     pc.addStream(stream);
                     var myVideo = document.querySelector('#myVideo');
                     myVideo.srcObject = stream;
                     myVideo.onloadedmetadata = function (e) {
                         myVideo.play();
-                    };                 
+                    };
                 })
                 .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
         }

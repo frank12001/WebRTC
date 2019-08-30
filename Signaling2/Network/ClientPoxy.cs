@@ -13,6 +13,7 @@ namespace Signaling2.Network
         public readonly NetUnit Net;
         private readonly ProxyManager Manager;
         private string SDP="";
+       public bool StartBroadcastCandidate = false;
 
         //甚麼時候要開始傳送 candidates?
         public List<string> Candidates = new List<string>();
@@ -51,8 +52,13 @@ namespace Signaling2.Network
                         var sdp = JsonConvert.DeserializeObject<Sdp>(value);
                         this.SDP = sdp.Json;
                         break;
-                    case "SaveCandidate":
+                    case Candidate.MyOperator:
                         var candidate = JsonConvert.DeserializeObject<Candidate>(value);
+                        if (StartBroadcastCandidate)
+                        {
+                            var json = JsonConvert.SerializeObject(new Candidate() { Json = candidate.Json });
+                            Manager.Broadcast(json, this);
+                        }
                         Candidates.Add(candidate.Json);
                         break;
                     case "BroadcastSDP":
@@ -60,6 +66,9 @@ namespace Signaling2.Network
                         this.SDP = broadcastSDP.Json;
                         var s = JsonConvert.SerializeObject(new Sdp() { Json = this.SDP });
                         Manager.Broadcast(s,this);
+                        break;
+                    case "BroadcastCandidate":
+                        Manager.BroadcastCandidate();
                         break;
                 }
             }

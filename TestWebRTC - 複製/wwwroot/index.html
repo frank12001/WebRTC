@@ -28,7 +28,9 @@
 
         socket.onopen = e => {
             console.log("open");
+
             pc.onicecandidate = (evt) => {
+                console.log("onicecandidate: " + JSON.stringify(evt.candidate));
                 if (!evt.candidate) return;
                 socket.send(JSON.stringify({
                     Operator: "SaveCandidate",
@@ -41,17 +43,36 @@
             pc.onaddstream = e => {
                 console.log("onaddstream");
             };
+            pc.onconnectionstatechange = function (event) {
+                switch (pc.connectionState) {
+                    case "connected":
+                        // The connection has become fully connected
+                        console.log("onconnectionstatechange connected");
+                        break;
+                    case "disconnected":
+                    case "failed":
+                        // One or more transports has terminated unexpectedly or in an error
+                        console.log("onconnectionstatechange disconnected & failed");
+                        console.log(JSON.stringify(event));
+                        break;
+                    case "closed":
+                        // The connection has been closed
+                        console.log("onconnectionstatechange close");
+                        break;
+                }
+            }
         };
         socket.onclose = function (e) { console.log("closed"); };
         socket.onmessage = function (e) {
             //1. save remote candidate
             //2. BroadcastSDP: answer sdp & output my video on ny screen
             //封包一定有 Operator 這個欄位
-            console.log("Received: " + e.data);
+            //console.log("Received: " + e.data);
 
             var packet = JSON.parse(e.data);
             switch (packet.Operator) {
                 case "SaveSDP":
+                    console.log("SaveSDP: " + packet.Json);
                     var sdp = JSON.parse(packet.Json);
                     var offer = new RTCSessionDescription(sdp);
                     pc.setRemoteDescription(offer);
@@ -65,6 +86,7 @@
                     });
                     break;
                 case "SaveCandidate":
+                    console.log("SaveCandidate: " + packet.Json);
                     var candidate = JSON.parse(packet.Json);  
                     pc.addIceCandidate(new RTCIceCandidate(candidate));
                     break;
