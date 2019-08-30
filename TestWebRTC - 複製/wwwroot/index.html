@@ -11,7 +11,7 @@
     <video id="remoteVideo1" playsinline></video>
 
     <div>
-        <button id="startButton">Start</button>
+        <button id="startButton" onclick="myFunction()">Start</button>
         <button id="callButton">Call</button>
         <button id="hangupButton">Hang Up</button>
     </div>
@@ -37,12 +37,26 @@
                     Json: JSON.stringify(evt.candidate)
                 }));
             };
-            pc.ontrack = evt => {
+            pc.ontrack = event => {
                 console.log("ontrack");
+                //var playPromise = video.play();
+                var myVideo = document.querySelector('#remoteVideo1');
+                myVideo.srcObject = event.streams[0];
+                myVideo.muted = true;
+                myVideo.play();
+                window.setTimeout(() =>
+                {
+                    var myVideo = document.querySelector('#remoteVideo1');
+                    myVideo.muted = false;
+                }, 5000);
             };
-            pc.onaddstream = e => {
+            pc.onaddstream = event => {
                 console.log("onaddstream");
+                //document.getElementById("myVideo").srcObject = event.stream;
             };
+            pc.onnegotiationneeded = () => {
+                console.log("onnegotiationneeded");
+            }
             pc.onconnectionstatechange = function (event) {
                 switch (pc.connectionState) {
                     case "connected":
@@ -77,7 +91,7 @@
                     var offer = new RTCSessionDescription(sdp);
                     pc.setRemoteDescription(offer);
                     //set my media
-                    setMedia(pc);
+                    //setMedia(pc);
                     createAnswerSDP(pc, answerSDP => {
                         socket.send(JSON.stringify({
                             Operator: "BroadcastSDP",
@@ -108,7 +122,7 @@
             var constraints = { audio: true, video: true };
             navigator.mediaDevices.getUserMedia(constraints)
                 .then((stream) => {
-                    pc.addStream(stream);
+                   // pc.addStream(stream);
                     var myVideo = document.querySelector('#myVideo');
                     myVideo.srcObject = stream;
                     myVideo.onloadedmetadata = function (e) {
@@ -116,6 +130,10 @@
                     };
                 })
                 .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
+        }
+        function myFunction() {
+            var myVideo = document.querySelector('#remoteVideo1');
+            myVideo.muted = false;
         }
     </script>
 </body>

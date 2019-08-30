@@ -27,12 +27,7 @@
         var socket = new WebSocket(uri);
         socket.onopen = e => {
             console.log("open");
-            createOfferSDP(pc, offerSDP => {
-                socket.send(JSON.stringify({
-                    Operator: "SaveSDP",
-                    Json: JSON.stringify(offerSDP)
-                }));
-            });
+            setMedia(pc,socket);
             pc.onicecandidate = evt => {
                 if (!evt.candidate) return;
                 socket.send(JSON.stringify({
@@ -46,6 +41,10 @@
             pc.onaddstream = e => {
                 console.log("onaddstream");
             };
+            pc.onnegotiationneeded = () =>
+            {
+                console.log("onnegotiationneeded");
+            }
             pc.onconnectionstatechange = function (event) {
                 switch (pc.connectionState) {
                     case "connected":
@@ -80,7 +79,7 @@
                     var answer = new RTCSessionDescription(sdp);
                     pc.setRemoteDescription(answer);
                     //set my media
-                    setMedia(pc);
+                    //setMedia(pc);
                     //broadcast my candidate
                     socket.send(JSON.stringify({
                         Operator: "BroadcastCandidate",
@@ -110,16 +109,27 @@
                 }, e => { console.log(e) }, options);
         }
         //取得本地攝影機串流，並將串流放入本地組件及 Peer 組件
-        function setMedia(pc) {
+        function setMedia(pc,socket) {
             var constraints = { audio: true, video: true };
             navigator.mediaDevices.getUserMedia(constraints)
                 .then((stream) => {
-                    pc.addStream(stream);
+                    //pc.addStream(stream);
+                    stream.getTracks().forEach(track => {
+                        pc.addTrack(track, stream);
+                    });
                     var myVideo = document.querySelector('#myVideo');
-                    myVideo.srcObject = stream;
-                    myVideo.onloadedmetadata = function (e) {
-                        myVideo.play();
-                    };
+                    //myVideo.srcObject = stream;
+                    //myVideo.onloadedmetadata = function (e) {
+                    //    myVideo.play();
+                    //};
+
+                    createOfferSDP(pc, offerSDP => {
+                        socket.send(JSON.stringify({
+                            Operator: "SaveSDP",
+                            Json: JSON.stringify(offerSDP)
+                        }));
+                    });
+
                 })
                 .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
         }
