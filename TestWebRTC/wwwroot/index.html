@@ -37,6 +37,14 @@
             };
             pc.ontrack = evt => {
                 console.log("ontrack");
+                var myVideo = document.querySelector('#remoteVideo1');
+                myVideo.srcObject = event.streams[0];
+                myVideo.muted = true;
+                myVideo.play();
+                window.setTimeout(() => {
+                    var myVideo = document.querySelector('#remoteVideo1');
+                    myVideo.muted = false;
+                }, 5000);
             };
             pc.onaddstream = e => {
                 console.log("onaddstream");
@@ -78,8 +86,6 @@
                     var sdp = JSON.parse(packet.Json);
                     var answer = new RTCSessionDescription(sdp);
                     pc.setRemoteDescription(answer);
-                    //set my media
-                    //setMedia(pc);
                     //broadcast my candidate
                     socket.send(JSON.stringify({
                         Operator: "BroadcastCandidate",
@@ -118,10 +124,10 @@
                         pc.addTrack(track, stream);
                     });
                     var myVideo = document.querySelector('#myVideo');
-                    //myVideo.srcObject = stream;
-                    //myVideo.onloadedmetadata = function (e) {
-                    //    myVideo.play();
-                    //};
+                    myVideo.srcObject = stream;
+                    myVideo.onloadedmetadata = function (e) {
+                        myVideo.play();
+                    };
 
                     createOfferSDP(pc, offerSDP => {
                         socket.send(JSON.stringify({

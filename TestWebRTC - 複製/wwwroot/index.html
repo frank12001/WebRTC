@@ -91,13 +91,7 @@
                     var offer = new RTCSessionDescription(sdp);
                     pc.setRemoteDescription(offer);
                     //set my media
-                    //setMedia(pc);
-                    createAnswerSDP(pc, answerSDP => {
-                        socket.send(JSON.stringify({
-                            Operator: "BroadcastSDP",
-                            Json: JSON.stringify(answerSDP)
-                        }));
-                    });
+                    setMedia(pc,socket);
                     break;
                 case "SaveCandidate":
                     console.log("SaveCandidate: " + packet.Json);
@@ -118,22 +112,29 @@
             }, e => { console.log(e); });
         }
         //取得本地攝影機串流，並將串流放入本地組件及 Peer 組件
-        function setMedia(pc) {
+        function setMedia(pc,socket) {
             var constraints = { audio: true, video: true };
             navigator.mediaDevices.getUserMedia(constraints)
                 .then((stream) => {
-                   // pc.addStream(stream);
+                    stream.getTracks().forEach(track => {
+                        pc.addTrack(track, stream);
+                    });
+
                     var myVideo = document.querySelector('#myVideo');
                     myVideo.srcObject = stream;
                     myVideo.onloadedmetadata = function (e) {
                         myVideo.play();
                     };
+
+                    createAnswerSDP(pc, answerSDP => {
+                        socket.send(JSON.stringify({
+                            Operator: "BroadcastSDP",
+                            Json: JSON.stringify(answerSDP)
+                        }));
+                    });
+
                 })
                 .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
-        }
-        function myFunction() {
-            var myVideo = document.querySelector('#remoteVideo1');
-            myVideo.muted = false;
         }
     </script>
 </body>
