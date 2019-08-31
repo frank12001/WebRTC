@@ -5,7 +5,7 @@
 
 </head>
 <body>
-    <h1>使用RTCPeerConnection流式传输视频</h1>
+    <h1 id="title"> 使用 RTCPeerConnection 傳輸影像</h1>
     <!--加了 playsinline 標籤才能在 iphone 上正常執行-->
     <video id="myVideo" playsinline></video>
     <video id="remoteVideo1" playsinline></video>
@@ -17,70 +17,142 @@
     </div>
 
     <script>
-                console.log('js code start');
-
-                ////var uri = "ws://"   window.location.host   "/ws";
-                //var uri = "ws://localhost:5000/ws";
-                //var output;
-                //var text = "test echo";
-                //var  socket = new WebSocket(uri);
-                //socket.onopen = function (e) { console.log("open"); };
-
-
-                var constraints = { audio: true, video: true };
-                navigator.mediaDevices.getUserMedia(constraints)
-                    .then(function (mediaStream) {
-                        var myVideo = document.querySelector('#myVideo');
-                        myVideo.srcObject = mediaStream;
-                        myVideo.onloadedmetadata = function (e) {
-                            myVideo.play();
-                        };
-                    })
-                    .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
-
-                var hasRTC = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-                if (hasRTC) {
-                    var configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:23.21.150.121" }] };
-                    var pc = new RTCPeerConnection(configuration);
-                    pc.createDataChannel('');
-                    console.log("create datachannel success");
-
-                    pc.createOffer(
-                        offerDesc => {
-                            pc.setLocalDescription(offerDesc);
-                            //send desc to other !?
-                            console.log("create createOffer success");
-                            console.log(offerDesc);
-                        }, e => { console.log(e) });
-
-                    pc.onicecandidate = (evt) => {
-                        console.log("onicecandidate");
-                        if (evt.candidate) {
-                            var ip_addr = evt.candidate.address;
-                            localStorage.setItem('ip_addr', ip_addr);
-                            console.log("可用的 evt.candidate 存在");
-                            console.log(ip_addr);
-                            console.log(evt.candidate);
-                            if (evt.candidate.type == 'srflx') {
-                                console.log("這個 candidate 是 ice 反射過來的");
-
-                            }
-                        }
-                        else { console.log("可用的 onicecandidate.evt.candidate 不存在"); }
-                    };
-
-                    pc.ontrack = (evt) => {
-                        console.log("add remote stream");
-                        console.log(evt);
-                        //將stream綁定到vedio上，就可以開始串流了
-                        var rwmoteVideo1 = document.querySelector('#remoteVideo1');
-                        rwmoteVideo1.src = URL.createObjectURL(evt.streams[0]);
-                    };
+        console.log('js code start');
+        var configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:23.21.150.121" }] };
+        var pc = new RTCPeerConnection(configuration);
+        //wss://signaling220190827034317.azurewebsites.net/ws
+        //ws://localhost:5000/ws
+        var uri = "wss://signaling220190827034317.azurewebsites.net/ws";
+        var output;
+        var socket = new WebSocket(uri);
+        socket.onopen = e => {
+            console.log("open");
+            myLog("1");
+            setMedia(pc, socket);
+            pc.onicecandidate = evt => {
+                if (!evt.candidate) return;
+                socket.send(JSON.stringify({
+                    Operator: "SaveCandidate",
+                    Json: JSON.stringify(evt.candidate)
+                }));
+            };
+            pc.ontrack = evt => {
+                console.log("ontrack");
+                var myVideo = document.querySelector('#remoteVideo1');
+                myVideo.srcObject = event.streams[0];
+                myVideo.muted = true;
+                myVideo.play();
+                window.setTimeout(() => {
+                    var myVideo = document.querySelector('#remoteVideo1');
+                    myVideo.muted = false;
+                }, 5000);
+            };
+            pc.onaddstream = e => {
+                console.log("onaddstream");
+            };
+            pc.onnegotiationneeded = () => {
+                console.log("onnegotiationneeded");
+            }
+            pc.onconnectionstatechange = function (event) {
+                switch (pc.connectionState) {
+                    case "connected":
+                        // The connection has become fully connected
+                        console.log("onconnectionstatechange connected");
+                        break;
+                    case "disconnected":
+                    case "failed":
+                        // One or more transports has terminated unexpectedly or in an error
+                        console.log("onconnectionstatechange disconnected & failed");
+                        console.log(JSON.stringify(event));
+                        break;
+                    case "closed":
+                        // The connection has been closed
+                        console.log("onconnectionstatechange close");
+                        break;
                 }
-                else {
-                    console.log("可用的 RTCPeerConnection 不存在");
-                }
+            }
+        };
+        socket.onclose = function (e) { console.log("closed"); };
+        socket.onmessage = function (e) {
+            //1. BroadcastSDP: save remote sdp & output my video on ny screen
+            //2. save remote candidate
+            //封包一定有 Operator 這個欄位
+            //console.log("Received: " + e.data);
 
+            var packet = JSON.parse(e.data);
+            switch (packet.Operator) {
+                case "SaveSDP":
+                    console.log("SaveSDP: " + packet.Json);
+                    var sdp = JSON.parse(packet.Json);
+                    var answer = new RTCSessionDescription(sdp);
+                    pc.setRemoteDescription(answer);
+                    //broadcast my candidate
+                    socket.send(JSON.stringify({
+                        Operator: "BroadcastCandidate",
+                    }));
+                    break;
+                case "SaveCandidate":
+                    console.log("SaveCandidate: " + packet.Json);
+                    var candidate = JSON.parse(packet.Json);
+                    pc.addIceCandidate(new RTCIceCandidate(candidate));
+                    break;
+            }
+        };
+        socket.onerror = function (e) { console.log("Error: " + e.data); };
+
+        //創建 SDP 並儲存至 pc 的 LocalDescription 中
+        function createOfferSDP(pc, success) {
+            myLog("8");
+            //要 create offer 後， pc.onicecandidate 才會觸發
+            var options = {
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            };
+            pc.createOffer(
+                offer => {
+                    myLog("9");
+                    pc.setLocalDescription(offer, () => {
+                          myLog("12");
+                        success(offer);
+                    }, e => { myLog("13");  myLog(e); });
+                }, e => {
+                    //console.log(e);
+                    myLog("10");
+                }, options);
+        }
+        //取得本地攝影機串流，並將串流放入本地組件及 Peer 組件
+        function setMedia(pc, socket) {
+            myLog("2");
+            var constraints = { audio: true, video: true };
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then((stream) => {
+                    myLog("3");
+                    stream.getTracks().forEach(track => {
+                        pc.addTrack(track, stream);
+                    });
+                    myLog("4");
+                    var myVideo = document.querySelector('#myVideo');
+                    myVideo.srcObject = stream;
+                    myVideo.onloadedmetadata = function (e) {
+                        myVideo.play();
+                    };
+                    myLog("5");
+                    createOfferSDP(pc, offerSDP => {
+                               myLog("11");
+                        console.log("send SaveSDP");
+                        socket.send(JSON.stringify({
+                            Operator: "SaveSDP",
+                            Json: JSON.stringify(offerSDP)
+                        }));
+                        myLog("6");
+                    });
+                })
+                .catch(function (err) { console.log(err.name + ": " + err.message);  }); // 总是在最后检查错误
+            myLog("7");
+        }
+        function myLog(value) {
+            document.getElementById("title").innerHTML += ", " + value;
+        }
     </script>
 </body>
 </html>

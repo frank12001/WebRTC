@@ -4,12 +4,19 @@ using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Signaling2.Network
 {
     public class NetUnit : IDisposable
     {
-        private const int BufferSize = 102400;
+        public static List<int> getPacketHistory = new List<int>();
+        public static List<string> getPacketHistoryType = new List<string>();
+        public static int QueueUpdateCount = 0;
+        public static int CallIncomeCount = 0;
+
+        private const int BufferSize = 10240;
+        private string MessageBuffer = "";
         private readonly WebSocket Socket;        
         private Queue<string> NetIncome = new Queue<string>();
         private Queue<string> Temp = new Queue<string>();
@@ -29,9 +36,11 @@ namespace Signaling2.Network
             {
                 while (IsSocketOpen())
                 {
+                    QueueUpdateCount++;
                     QueueUpdate();
                     if (Logic.Count > 0)
                     {
+                        CallIncomeCount++;
                         var packet = Logic.Dequeue();
                         this.onIncome(packet);
                     }
@@ -72,10 +81,23 @@ namespace Signaling2.Network
             {
                 var buffer = new byte[BufferSize];
                 var incoming = await Socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                getPacketHistoryType.Add(JsonConvert.SerializeObject(incoming));
                 var mybuff = new byte[incoming.Count];
                 Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
                 var packet = Encoding.Default.GetString(mybuff);
-                NetIncome.Enqueue(packet);
+
+                if (incoming.EndOfMessage)
+                {
+                    var s = MessageBuffer + packet;
+                    NetIncome.Enqueue(s);
+                    MessageBuffer = "";
+                }
+                else
+                {
+                    MessageBuffer += packet;
+                }
+
+                getPacketHistory.Add(packet.Length);
             }
             Dispose();
         }

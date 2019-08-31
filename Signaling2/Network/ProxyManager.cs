@@ -11,6 +11,10 @@ namespace Signaling2.Network
     {
         private readonly List<ClientProxy> Clients = new List<ClientProxy>();
 
+        public int Count()
+        {
+            return Clients.Count;
+        }
         public void Add(ClientProxy client)
         {
             if (!Clients.Contains(client))

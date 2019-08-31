@@ -17,7 +17,7 @@ namespace Signaling2
 {
     public class Startup
     {
-        static ProxyManager Manager = new ProxyManager();
+        static readonly ProxyManager Manager = new ProxyManager();
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
@@ -39,6 +39,30 @@ namespace Signaling2
                 endpoints.MapGet("/", async context =>
                 {
                     await context.Response.WriteAsync("Hello World!");
+                });
+                endpoints.MapGet("/getSaveSDPCount", async context =>
+                {
+                    Manager.TryFindFirstSDP(out string sdp);
+                    await context.Response.WriteAsync($"ClientProxy.getSaveSDPCount: {ClientProxy.getSaveSDPCount},");
+
+    //                await context.Response.WriteAsync($"Manager Count: {Manager.Count()}, First SDP: {sdp}, " +
+    //$"ClientProxy.getSaveSDPCount: {ClientProxy.getSaveSDPCount}, " +
+    //$"NetUnit.getPacketHistory: {JsonConvert.SerializeObject(NetUnit.getPacketHistory)}, " +
+    //$"NetUnit.QueueUpdateCount: {NetUnit.QueueUpdateCount}, " +
+    //$"NetUnit.CallIncomeCount: {NetUnit.CallIncomeCount}" +
+    //$"ClientProxy.ReceiveCount: {ClientProxy.ReceiveCount}" +
+    //$"ClientProxy.ReceiveDefaultCount: {ClientProxy.ReceiveDefaultCount}" +
+    //$"ClientProxy.ReceiveErrorCount: {ClientProxy.ReceiveErrorCount}" +
+    //$"ClientProxy.ErrorsValue: {JsonConvert.SerializeObject(ClientProxy.ErrorsValues[0])}" +
+    //$"NetUnit.getPacketHistoryType: {JsonConvert.SerializeObject(NetUnit.getPacketHistoryType)}");
+                });
+                endpoints.MapGet("/log", async context =>
+                {
+                    Manager.TryFindFirstSDP(out string sdp);
+                    await context.Response.WriteAsync($"Manager Count: {Manager.Count()}, First SDP: {sdp}, " +
+                        $"NetUnit.getPacketHistory: {JsonConvert.SerializeObject(NetUnit.getPacketHistory)}, ");
+
+
                 });
             });
 
@@ -63,70 +87,6 @@ namespace Signaling2
                     }
                 });
             });
-        }
-
-        static int index = -1;
-        static List<WebSocket> clients = new List<WebSocket>();
-        static string OfferICE="";
-        static string AnswerICE = "";
-        async Task Receive(WebSocket socket,int index)
-        {
-            if (index == 1)
-            {
-                await SendStringAsync(socket,OfferICE);
-            }
-            while (socket.State == WebSocketState.Open)
-            {
-                var buffer = new byte[102400];
-                var incoming = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                byte[] mybuff = new byte[incoming.Count];
-                Array.Copy(buffer, 0, mybuff, 0, incoming.Count);
-                string s = System.Text.UTF8Encoding.Default.GetString(mybuff);
-                Console.WriteLine($"Recevie Something: {s}");
-
-                try
-                {
-                    var g = JsonConvert.DeserializeObject<SDP>(s);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-
-                if (s.Length > 0)
-                {
-                    if (index == 0)
-                    {
-                        if(OfferICE.Length == 0)
-                            OfferICE = s;
-                    }
-                    if (index == 1)
-                    {
-                        if (AnswerICE.Length == 0)
-                        {
-                            AnswerICE = s;
-                            await SendStringAsync(clients[index - 1], AnswerICE);
-                        }
-                    }
-                }
-            }
-        }
-
-        public async Task SendStringAsync(WebSocket socket,string text)
-        {
-            byte[] pack = System.Text.UTF8Encoding.Default.GetBytes(text);
-            var outgoing = new ArraySegment<byte>(pack, 0, pack.Length);
-            await socket.SendAsync(outgoing, WebSocketMessageType.Text, true, CancellationToken.None);
-        }
-
-        public class SDP : PacketBase
-        {
-            public string Json;
-        }
-
-        public class PacketBase
-        {
-            public string Operator;   
-        }
+        }       
     }
 }

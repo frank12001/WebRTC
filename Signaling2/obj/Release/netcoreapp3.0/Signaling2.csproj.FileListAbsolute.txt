@@ -18,3 +18,5 @@ C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\Signaling2
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\Signaling2.RazorTargetAssemblyInfo.cache
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\Signaling2.dll
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\Signaling2.pdb
+C:\Users\User\Desktop\BlazorTest\Signaling2\bin\Release\netcoreapp3.0\Newtonsoft.Json.dll
+C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\Signaling2.csproj.CopyComplete

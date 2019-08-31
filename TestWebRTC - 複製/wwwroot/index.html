@@ -5,7 +5,7 @@
 
 </head>
 <body>
-    <h1> 使用 RTCPeerConnection 傳輸影像</h1>
+    <h1 id="title"> 使用 RTCPeerConnection 傳輸影像</h1>
     <!--加了 playsinline 標籤才能在 iphone 上正常執行-->
     <video id="myVideo" playsinline></video>
     <video id="remoteVideo1" playsinline></video>
@@ -22,7 +22,8 @@
         var pc = new RTCPeerConnection(configuration);
         //wss://signaling220190827034317.azurewebsites.net/ws
         //ws://localhost:5000/ws
-        var uri = "ws://localhost:5000/ws";
+        //https://signaling220190827034317.azurewebsites.net
+        var uri = "wss://signaling220190827034317.azurewebsites.net/ws";
         var output;
         var socket = new WebSocket(uri);
 
@@ -135,6 +136,10 @@
 
                 })
                 .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
+        }
+        function myLog(value)
+        {
+            document.getElementById("title").innerHTML += ", " + value;
         }
     </script>
 </body>

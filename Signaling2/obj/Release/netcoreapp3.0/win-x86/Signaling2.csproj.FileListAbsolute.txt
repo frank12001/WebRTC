@@ -366,3 +366,5 @@ C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\win-x86\Si
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\win-x86\Signaling2.csproj.CopyComplete
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\win-x86\Signaling2.dll
 C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\win-x86\Signaling2.pdb
+C:\Users\User\Desktop\BlazorTest\Signaling2\bin\Release\netcoreapp3.0\win-x86\Newtonsoft.Json.dll
+C:\Users\User\Desktop\BlazorTest\Signaling2\obj\Release\netcoreapp3.0\win-x86\Signaling2.csprojAssemblyReference.cache

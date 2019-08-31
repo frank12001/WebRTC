@@ -9,11 +9,17 @@ using Signaling2.Network.Packet;
 namespace Signaling2.Network
 {
     public class ClientProxy
-    {            
+    {
+        public static int getSaveSDPCount = 0;
+        public static int ReceiveCount = 0;
+        public static int ReceiveDefaultCount = 0;
+        public static int ReceiveErrorCount = 0;
+        public static List<string> ErrorsValues = new List<string>();
+
         public readonly NetUnit Net;
         private readonly ProxyManager Manager;
         private string SDP="";
-       public bool StartBroadcastCandidate = false;
+        public bool StartBroadcastCandidate = false;
 
         //甚麼時候要開始傳送 candidates?
         public List<string> Candidates = new List<string>();
@@ -43,12 +49,14 @@ namespace Signaling2.Network
         }
         public void Receive(string value)
         {
+            ReceiveCount++;
             try
             {
                 var packet = JsonConvert.DeserializeObject<IBase>(value);
                 switch (packet.Operator)
                 {
                     case Sdp.MyOperator:
+                        getSaveSDPCount++;
                         var sdp = JsonConvert.DeserializeObject<Sdp>(value);
                         this.SDP = sdp.Json;
                         break;
@@ -70,10 +78,15 @@ namespace Signaling2.Network
                     case "BroadcastCandidate":
                         Manager.BroadcastCandidate();
                         break;
+                    default:
+                        ReceiveDefaultCount++;
+                        break;
                 }
             }
             catch (Exception e)
             {
+                ReceiveErrorCount++;
+                ErrorsValues.Add(value);
                 Console.WriteLine(e);
             }
         }
