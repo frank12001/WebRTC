@@ -5,82 +5,142 @@
 
 </head>
 <body>
-    <h1>使用RTCPeerConnection流式传输视频</h1>
+    <h1 id="title"> 使用 RTCPeerConnection 傳輸影像</h1>
     <!--加了 playsinline 標籤才能在 iphone 上正常執行-->
     <video id="myVideo" playsinline></video>
     <video id="remoteVideo1" playsinline></video>
 
     <div>
-        <button id="startButton">Start</button>
+        <button id="startButton" onclick="myFunction()">Start</button>
         <button id="callButton">Call</button>
         <button id="hangupButton">Hang Up</button>
     </div>
 
     <script>
-                console.log('js code start');
+        console.log('js code start');
+        var configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:23.21.150.121" }] };
+        var pc = new RTCPeerConnection(configuration);
+        //wss://signaling220190827034317.azurewebsites.net/ws
+        //ws://localhost:5000/ws
+        //https://signaling220190827034317.azurewebsites.net
+        var uri = "wss://signaling220190827034317.azurewebsites.net/ws";
+        var output;
+        var socket = new WebSocket(uri);
 
-                ////var uri = "ws://"   window.location.host   "/ws";
-                //var uri = "ws://localhost:5000/ws";
-                //var output;
-                //var text = "test echo";
-                //var  socket = new WebSocket(uri);
-                //socket.onopen = function (e) { console.log("open"); };
+        socket.onopen = e => {
+            console.log("open");
 
+            pc.onicecandidate = (evt) => {
+                console.log("onicecandidate: " + JSON.stringify(evt.candidate));
+                if (!evt.candidate) return;
+                socket.send(JSON.stringify({
+                    Operator: "SaveCandidate",
+                    Json: JSON.stringify(evt.candidate)
+                }));
+            };
+            pc.ontrack = event => {
+                console.log("ontrack");
+                //var playPromise = video.play();
+                var myVideo = document.querySelector('#remoteVideo1');
+                myVideo.srcObject = event.streams[0];
+                myVideo.muted = true;
+                myVideo.play();
+                window.setTimeout(() =>
+                {
+                    var myVideo = document.querySelector('#remoteVideo1');
+                    myVideo.muted = false;
+                }, 5000);
+            };
+            pc.onaddstream = event => {
+                console.log("onaddstream");
+                //document.getElementById("myVideo").srcObject = event.stream;
+            };
+            pc.onnegotiationneeded = () => {
+                console.log("onnegotiationneeded");
+            }
+            pc.onconnectionstatechange = function (event) {
+                switch (pc.connectionState) {
+                    case "connected":
+                        // The connection has become fully connected
+                        console.log("onconnectionstatechange connected");
+                        break;
+                    case "disconnected":
+                    case "failed":
+                        // One or more transports has terminated unexpectedly or in an error
+                        console.log("onconnectionstatechange disconnected & failed");
+                        console.log(JSON.stringify(event));
+                        break;
+                    case "closed":
+                        // The connection has been closed
+                        console.log("onconnectionstatechange close");
+                        break;
+                }
+            }
+        };
+        socket.onclose = function (e) { console.log("closed"); };
+        socket.onmessage = function (e) {
+            //1. save remote candidate
+            //2. BroadcastSDP: answer sdp & output my video on ny screen
+            //封包一定有 Operator 這個欄位
+            //console.log("Received: " + e.data);
 
-                var constraints = { audio: true, video: true };
-                navigator.mediaDevices.getUserMedia(constraints)
-                    .then(function (mediaStream) {
-                        var myVideo = document.querySelector('#myVideo');
-                        myVideo.srcObject = mediaStream;
-                        myVideo.onloadedmetadata = function (e) {
-                            myVideo.play();
-                        };
-                    })
-                    .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
+            var packet = JSON.parse(e.data);
+            switch (packet.Operator) {
+                case "SaveSDP":
+                    console.log("SaveSDP: " + packet.Json);
+                    var sdp = JSON.parse(packet.Json);
+                    var offer = new RTCSessionDescription(sdp);
+                    pc.setRemoteDescription(offer);
+                    //set my media
+                    setMedia(pc,socket);
+                    break;
+                case "SaveCandidate":
+                    console.log("SaveCandidate: " + packet.Json);
+                    var candidate = JSON.parse(packet.Json);  
+                    pc.addIceCandidate(new RTCIceCandidate(candidate));
+                    break;
+            }
+        };
+        socket.onerror = function (e) { console.log("Error: " + e.data); };
 
-                var hasRTC = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-                if (hasRTC) {
-                    var configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:23.21.150.121" }] };
-                    var pc = new RTCPeerConnection(configuration);
-                    pc.createDataChannel('');
-                    console.log("create datachannel success");
+        //創建 SDP 並儲存至 pc 的 LocalDescription 中
+        function createAnswerSDP(pc, success) {
+            //要 create offer 後， pc.onicecandidate 才會觸發
+            pc.createAnswer(function (answer) {
+                pc.setLocalDescription(answer, function () {
+                    success(answer)
+                }, e => { console.log(e); });
+            }, e => { console.log(e); });
+        }
+        //取得本地攝影機串流，並將串流放入本地組件及 Peer 組件
+        function setMedia(pc,socket) {
+            var constraints = { audio: true, video: true };
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then((stream) => {
+                    stream.getTracks().forEach(track => {
+                        pc.addTrack(track, stream);
+                    });
 
-                    pc.createOffer(
-                        offerDesc => {
-                            pc.setLocalDescription(offerDesc);
-                            //send desc to other !?
-                            console.log("create createOffer success");
-                            console.log(offerDesc);
-                        }, e => { console.log(e) });
-
-                    pc.onicecandidate = (evt) => {
-                        console.log("onicecandidate");
-                        if (evt.candidate) {
-                            var ip_addr = evt.candidate.address;
-                            localStorage.setItem('ip_addr', ip_addr);
-                            console.log("可用的 evt.candidate 存在");
-                            console.log(ip_addr);
-                            console.log(evt.candidate);
-                            if (evt.candidate.type == 'srflx') {
-                                console.log("這個 candidate 是 ice 反射過來的");
-
-                            }
-                        }
-                        else { console.log("可用的 onicecandidate.evt.candidate 不存在"); }
+                    var myVideo = document.querySelector('#myVideo');
+                    myVideo.srcObject = stream;
+                    myVideo.onloadedmetadata = function (e) {
+                        myVideo.play();
                     };
 
-                    pc.ontrack = (evt) => {
-                        console.log("add remote stream");
-                        console.log(evt);
-                        //將stream綁定到vedio上，就可以開始串流了
-                        var rwmoteVideo1 = document.querySelector('#remoteVideo1');
-                        rwmoteVideo1.src = URL.createObjectURL(evt.streams[0]);
-                    };
-                }
-                else {
-                    console.log("可用的 RTCPeerConnection 不存在");
-                }
+                    createAnswerSDP(pc, answerSDP => {
+                        socket.send(JSON.stringify({
+                            Operator: "BroadcastSDP",
+                            Json: JSON.stringify(answerSDP)
+                        }));
+                    });
 
+                })
+                .catch(function (err) { console.log(err.name + ": " + err.message); }); // 总是在最后检查错误
+        }
+        function myLog(value)
+        {
+            document.getElementById("title").innerHTML += ", " + value;
+        }
     </script>
 </body>
 </html>
